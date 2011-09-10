@@ -5,13 +5,13 @@ class RoomPicker(gtk.VBox):
     refresh_text = "Refresh"
     refreshing_text = "Refreshing..."
 
-    def __init__(self, network, controller):
+    def __init__(self, controller):
         super(RoomPicker, self).__init__(False, 4)
         # self.set_title("Room Picker")
         # self.set_size_request(350, 250)
 
         self.controller = controller
-        self.network = network
+        self.network = controller.network
         self.set_border_width(6)
 
         self.store = gtk.ListStore(str, str)
@@ -64,8 +64,8 @@ class RoomPicker(gtk.VBox):
 
     def on_activate(self, widget, row, col):
         # print "activate row:", row, "col:", col
-        print self.store[row][0]
-        self.controller.new_chat()
+        room_name = self.store[row][0]
+        self.controller.goto_chat(room_name)
 
     def create_columns(self, tree_view):
         col = gtk.TreeViewColumn("Name", gtk.CellRendererText(), text=0)

@@ -49,10 +49,17 @@ class Room(object):
         self.campfire = campfire
         self.room = room
         self.in_room = True
+        self.detailed = None
 
     @property
     def id(self):
         return self.room['id']
+
+    def get_users(self):
+        if self.detailed is None:
+            self.detailed = self.campfire.api("room/%d" % self.id)
+
+        return self.detailed["room"]["users"]
 
     def speak(self, text):
         if not self.in_room: raise ValueError("not in room")
@@ -72,7 +79,7 @@ class StreamingRoom(Campfire):
         self.conn = None
         self.room = room
 
-    def get_line(self):
+    def get_message(self):
         if self.conn is None:
             print "setting up connection"
             req = self.campfire.make_request(self.url + "room/%d/live.json" % self.room.id)
@@ -89,7 +96,7 @@ class StreamingRoom(Campfire):
                 while True:
                     c = self.conn.read(1)
                     if c == "\r":
-                        return "".join(buff)
+                        return json.loads("".join(buff))
                     buff.append(c)
 
     @property
@@ -103,7 +110,7 @@ if __name__ == "__main__":
     stream = r.get_streaming()
     try:
         while True:
-            print stream.get_line()
+            print stream.get_message()
     except KeyboardInterrupt:
         r.leave()
 

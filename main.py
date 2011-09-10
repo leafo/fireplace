@@ -54,16 +54,17 @@ class Network(AsyncProxy):
         super(Network, self).__init__(self.campfire)
 
 class StreamingRoom(threading.Thread):
-    def __init__(self, network, room):
+    def __init__(self, room, callback):
         super(StreamingRoom, self).__init__()
         self.daemon = True
+        self.callback = callback
         self.room = room
-        self.network = network
 
     def run(self):
-        stream = self.room.get_streaming()
+        stream = self.room._obj.get_streaming()
         while True:
-            print stream.get_line()
+            message = stream.get_message()
+            self.callback(message)
 
 class First(object):
     def hello(self, widget, data=None):
@@ -115,19 +116,31 @@ class First(object):
         # self.input.set_sensitive(True)
 
     def run(self):
-        gtk.main()
+        tk.main()
 
 
 class TabWindow(gtk.Window):
     def destroy_event(self, widget, data=None):
         gtk.main_quit()
 
-    def new_chat(self): # change to goto chat
-        page_num = self.notebook.append_page(ChatDialog())
-        self.notebook.set_current_page(page_num)
+    def goto_chat(self, room_name):
+        if room_name in self.current_chats:
+            page_id, chat = self.current_chats[room_name]
+        else:
+            chat = ChatDialog(self, room_name)
+            page_id = self.notebook.append_page(chat, gtk.Label(room_name))
+            self.current_chats[room_name] = (page_id, chat)
+
+        self.notebook.set_current_page(page_id)
+
+    def close_chat(self):
+        pass
 
     def __init__(self):
         super(TabWindow, self).__init__()
+
+        self.current_chats = {}
+
         self.set_title("Hi")
         self.set_size_request(640, 480)
         self.set_border_width(6)
@@ -135,37 +148,137 @@ class TabWindow(gtk.Window):
         self.connect("destroy", self.destroy_event)
 
         self.network = Network()
-        self.rooms = RoomPicker(self.network, self)
+        self.rooms = RoomPicker(self)
         self.notebook = gtk.Notebook()
-        self.notebook.append_page(self.rooms, gtk.Label("Rooms"))
+        self.notebook.append_page(self.rooms, gtk.Label("Room List"))
 
         self.add(self.notebook)
         self.show_all()
 
 class ChatDialog(gtk.VBox):
-    def __init__(self):
-        super(ChatDialog, self).__init__(False, 4)
-        self.set_border_width(10)
+    refreshing = False
+    room = None
 
-        ok = gtk.Button("Okay")
-        cancel = gtk.Button("Cancel")
-        cool = gtk.Entry()
+    def create_user_list_widget(self):
+        user_store = gtk.ListStore(str)
+        user_list = gtk.TreeView(user_store)
 
-        hbox = gtk.HBox(False, 4)
-        hbox.pack_start(ok, False, False)
-        hbox.pack_start(cool, True, True)
-        hbox.pack_start(cancel, False, False)
+        user_list.set_size_request(120, 0)
 
-        text = gtk.TextView()
+        col = gtk.TreeViewColumn("Users", gtk.CellRendererText(), text=0)
+        col.set_sort_column_id(0)
+        user_list.append_column(col)
+
+        self.user_list = user_list
+
         sw = gtk.ScrolledWindow()
         sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        sw.add(text)
+        sw.add(user_list)
+        return sw
 
-        # vbox = gtk.VBox(False, 4)
-        self.pack_start(sw, True, True)
+    def __init__(self, controller, room_name):
+        super(ChatDialog, self).__init__(False, 4)
+        self.controller = controller
+        self.network = controller.network
+
+        self.set_border_width(6)
+
+        self.send_button = gtk.Button("Send")
+        self.send_button.connect("clicked", self.on_click_send)
+
+        self.entry = gtk.Entry()
+        self.entry.connect("activate", self.on_send)
+
+        self.entry.set_sensitive(False)
+        self.send_button.set_sensitive(False)
+
+        hbox = gtk.HBox(False, 4)
+        hbox.pack_start(self.entry, True, True)
+        hbox.pack_start(self.send_button, False, False)
+
+        self.history = gtk.TextView()
+        self.history.set_editable(False)
+        self.history.set_cursor_visible(False)
+        self.history.set_wrap_mode(gtk.WRAP_NONE)
+
+        scrolled_history = gtk.ScrolledWindow()
+        scrolled_history.set_shadow_type(gtk.SHADOW_ETCHED_IN)
+        scrolled_history.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        scrolled_history.add(self.history)
+
+        user_list = self.create_user_list_widget()
+        pane = gtk.HPaned()
+        pane.pack1(scrolled_history, True)
+        pane.pack2(user_list, False)
+
+        self.pack_start(pane, True, True)
         self.pack_start(hbox, False)
         self.show_all()
+
+        self.network.join(self.on_join, room_name)
+
+        # messages that couldn't be displayed yet because we don't have user names
+        self.undisplayed_messages = []
+        self.user_id_to_name = {}
+
+
+    # we also need to refresh the chat history (for d/c)
+    def refresh(self):
+        if self.refreshing: return
+        self.refreshing = True
+        self.room.get_users(self.on_refresh)
+
+    def on_refresh(self, users):
+        store = self.user_list.get_model()
+        store.clear()
+        # TODO: need to handle messages coming from users that aren't in the room
+        self.user_id_to_name = {}
+        for user in users:
+            self.user_id_to_name[user["id"]] = user["name"]
+            store.append([user["name"]])
+
+        # write unsent messages
+        for user_id, msg in self.undisplayed_messages:
+            if user_id in self.user_id_to_name:
+                self.add_line(self.user_id_to_name[user_id], msg)
+
+        del self.undisplayed_messages[:]
+        self.refreshing = False
+
+    def on_click_send(self, button):
+        self.on_send(self.entry)
+
+    def on_send(self, entry):
+        text = entry.get_text()
+        if not text: return
+        print "sending:", text
+        self.room.speak(None, text)
+        entry.set_text("")
+
+    def on_message(self, msg):
+        print "msg:", msg
+        user_id = msg["user_id"]
+        if user_id in self.user_id_to_name:
+            self.add_line(self.user_id_to_name[user_id], msg["body"])
+        else:
+            self.undisplayed_messages.append((user_id, msg["body"]))
+            self.refresh()
+
+    def on_join(self, room):
+        self.room = room
+        self.entry.set_sensitive(True)
+        self.send_button.set_sensitive(True)
+
+        self.refresh()
+        self.stream = StreamingRoom(self.room, self.on_message)
+        self.stream.start()
+
+    # add a line to the history
+    def add_line(self, username, content):
+        print username, ":", content
+        buffer = self.history.get_buffer()
+        buffer.insert(buffer.get_end_iter(), "%s: %s\n" % (username, content))
 
 if __name__ == "__main__":
     # gtk.main()
