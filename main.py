@@ -144,6 +144,7 @@ class ChatHistory(gtk.ScrolledWindow):
         self.add(self.text)
 
         self.message_queue = deque()
+        self.currently_identifiying = set()
 
         self.ready = False
 
@@ -171,10 +172,13 @@ class ChatHistory(gtk.ScrolledWindow):
 
     def identify_user_id(self, id):
         def identify(user):
+            self.currently_identifiying.remove(id)
             self.chat.user_id_to_name[id] = user["user"]["name"]
             self.dequeue_messages()
 
-        self.network.api(identify, "users/%d" % id)
+        if id not in self.currently_identifiying:
+            self.currently_identifiying.add(id)
+            self.network.api(identify, "users/%d" % id)
 
     def dequeue_messages(self):
         while self.message_queue:
