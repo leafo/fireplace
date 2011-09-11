@@ -72,7 +72,7 @@ class StreamingRoom(threading.Thread):
 class TabWindow(gtk.Window):
     me = None
 
-    def destroy_event(self, widget, data=None):
+    def on_destroy(self, widget, data=None):
         gtk.main_quit()
 
     def goto_chat(self, room_name):
@@ -122,7 +122,7 @@ class TabWindow(gtk.Window):
         self.set_size_request(640, 480)
         self.set_border_width(6)
 
-        self.connect("destroy", self.destroy_event)
+        self.connect("destroy", self.on_destroy)
 
         self.rooms = RoomPicker(self)
         self.notebook = gtk.Notebook()
@@ -359,5 +359,7 @@ class ChatDialog(gtk.VBox):
 if __name__ == "__main__":
     # gtk.main()
     # First().run()
-    TabWindow()
+    # TabWindow()
+    import login
+    login.LoginDialog()
     gtk.main()

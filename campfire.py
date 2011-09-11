@@ -8,8 +8,10 @@ class Campfire(object):
     key = "eda1e05163b1bac206c701624480b8adaacc3fe6"
     url = "https://leafonet.campfirenow.com:443/"
 
-    def __init__(self):
+    def __init__(self, key=None, url=None):
         self.rooms = None
+        if key is not None: self.key = key
+        if url is not None: self.url = url
 
     def make_request(self, url, data=None):
         print "Requesting:", url, "data:", data
