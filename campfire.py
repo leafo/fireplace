@@ -35,12 +35,17 @@ class Campfire(object):
         self.api("room/%d/join" % room['id'], "")
         return Room(self, room)
 
+    def get_all_rooms(self):
+        rooms = self.api("rooms")["rooms"]
+        self.rooms = {}
+        for room in rooms:
+            self.rooms[room["name"]] = room
+
+        return rooms
+
     def get_room_by_name(self, name, force=False):
         if self.rooms is None or force == True:
-            rooms = self.api("rooms")["rooms"]
-            self.rooms = {}
-            for room in rooms:
-                self.rooms[room["name"]] = room
+            self.get_all_rooms()
 
         return self.rooms[name]
 

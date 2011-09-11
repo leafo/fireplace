@@ -1,5 +1,6 @@
 
 import gtk
+import gobject
 
 class RoomPicker(gtk.VBox):
     refresh_text = "Refresh"
@@ -50,13 +51,15 @@ class RoomPicker(gtk.VBox):
     def on_click_refresh(self, btn):
         self.refresh_button.set_sensitive(False)
         self.refresh_button.set_label(self.refreshing_text)
+        self.network.get_all_rooms(self.fill_rooms)
 
-        self.network.api(self.fill_rooms, "rooms")
+    def fill_rooms(self, rooms):
+        # TODO: don't loop like this, have a callback
+        if not self.controller.ready:
+            gobject.idle_add(self.fill_rooms, rooms)
 
-    def fill_rooms(self, response):
-        print repr(response)
         self.store.clear()
-        for room in response["rooms"]:
+        for room in rooms:
             self.store.append([room["name"], room["topic"]])
 
         self.refresh_button.set_sensitive(True)
