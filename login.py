@@ -2,9 +2,10 @@
 import gtk
 from config import *
 
-from campfire import Campfire
 import urllib2
-from main import Network, TabWindow
+
+from campfire import Campfire
+from network import Network
 
 class Validator(object):
     def __init__(self):
@@ -80,8 +81,7 @@ class LoginDialog(gtk.Window):
 
     def on_login(self, me):
         self.sync.save_widget_values()
-        TabWindow(self.network, me["user"])
-        self.hide()
+        self.controller.on_login(self.network, me["user"])
 
     def on_fail_login(self, err):
         if isinstance(err, urllib2.HTTPError):
@@ -96,8 +96,9 @@ class LoginDialog(gtk.Window):
     def on_destroy(self, widget):
         gtk.main_quit()
 
-    def __init__(self):
+    def __init__(self, controller):
         super(LoginDialog, self).__init__()
+        self.controller = controller
         self.set_border_width(8)
         self.set_title("Connect to Campfire")
 

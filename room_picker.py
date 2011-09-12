@@ -1,6 +1,5 @@
 
 import gtk
-import gobject
 
 class RoomPicker(gtk.VBox):
     refresh_text = "Refresh"
