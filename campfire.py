@@ -8,22 +8,32 @@ class Campfire(object):
     key = "eda1e05163b1bac206c701624480b8adaacc3fe6"
     url = "https://leafonet.campfirenow.com:443/"
 
+    @classmethod
+    def url_for_subdomain(self, domain):
+        return "https://%s.campfirenow.com:443/" % domain
+
     def __init__(self, key=None, url=None):
         self.rooms = None
         if key is not None: self.key = key
         if url is not None: self.url = url
 
-    def make_request(self, url, data=None):
+    def login(self, username, password):
+        return self.api("users/me", auth=(username, password))
+
+    def make_request(self, url, data=None, auth=None):
         print "Requesting:", url, "data:", data
         req = urllib2.Request(url, data=data)
-        auth = base64.encodestring('%s:x' % self.key)[:-1]
+
+        if auth is None: auth = (self.key, 'x')
+
+        auth = base64.encodestring('%s:%s' % auth)[:-1]
         req.add_header("Authorization", "Basic " + auth)
         req.add_header("Content-Type", 'application/json')
         return req
 
-    def api(self, path, post=None, ext=".json"):
+    def api(self, path, post=None, ext=".json", auth=None):
         url = self.url + path + ext
-        req = self.make_request(url, post)
+        req = self.make_request(url, post, auth=auth)
 
         u = urllib2.urlopen(req)
         try:
@@ -112,14 +122,17 @@ class StreamingRoom(Campfire):
 
 if __name__ == "__main__":
     c = Campfire()
-    r = c.join("Room 1")
-    r.speak("what is goin: on here")
-    stream = r.get_streaming()
-    try:
-        while True:
-            print stream.get_message()
-    except KeyboardInterrupt:
-        r.leave()
 
-    # r.leave()
+    print c.login("leafot@gmail.com", "brokepass")
+
+    # r = c.join("Room 1")
+    # r.speak("what is goin: on here")
+    # stream = r.get_streaming()
+    # try:
+    #     while True:
+    #         print stream.get_message()
+    # except KeyboardInterrupt:
+    #     r.leave()
+
+    # # r.leave()
     # print c.api("presence")

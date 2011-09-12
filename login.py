@@ -2,6 +2,10 @@
 import gtk
 from config import *
 
+from campfire import Campfire
+import urllib2
+from main import Network, TabWindow
+
 class Validator(object):
     def __init__(self):
         self.errors = []
@@ -26,7 +30,7 @@ class LoginDialog(gtk.Window):
 
     def validate_input(self):
         v = Validator()
-        v.is_url(self.domain_entry)
+        v.not_empty(self.domain_entry)
         v.not_empty(self.user_entry)
         v.not_empty(self.pass_entry)
         return v.errors
@@ -65,7 +69,29 @@ class LoginDialog(gtk.Window):
             self._error(msg)
             widget.grab_focus()
         else:
-            self.sync.save_widget_values()
+            url = Campfire.url_for_subdomain(self.sync.get_value("server.host"))
+            print url
+            self.network = Network(url=url)
+
+            username = self.sync.get_value("server.username")
+            password = self.sync.get_value("server.password")
+
+            self.network.login(self.on_login, username, password, fail=self.on_fail_login)
+
+    def on_login(self, me):
+        self.sync.save_widget_values()
+        TabWindow(self.network, me["user"])
+        self.hide()
+
+    def on_fail_login(self, err):
+        if isinstance(err, urllib2.HTTPError):
+            if err.code == 401:
+                self._error("Failed to authenticate")
+                self.user_entry.grab_focus()
+            else:
+                self._error(str(err))
+
+        raise err
 
     def on_destroy(self, widget):
         gtk.main_quit()

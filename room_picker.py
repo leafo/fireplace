@@ -54,10 +54,6 @@ class RoomPicker(gtk.VBox):
         self.network.get_all_rooms(self.fill_rooms)
 
     def fill_rooms(self, rooms):
-        # TODO: don't loop like this, have a callback
-        if not self.controller.ready:
-            gobject.idle_add(self.fill_rooms, rooms)
-
         self.store.clear()
         for room in rooms:
             self.store.append([room["name"], room["topic"]])

@@ -80,7 +80,8 @@ class Config(object):
 
 class ConfigSynchronizer(object):
     def __init__(self, cfg):
-        self.items = {}
+        self.items = {} # path for widgets
+        self.widget_for_path = {}
         self.cfg = cfg
 
     def serialize_value(self, widget):
@@ -121,7 +122,12 @@ class ConfigSynchronizer(object):
             cfg.set(path[-1], self.serialize_value(widget))
         self.cfg.save()
 
+    def get_value(self, path):
+        widget = self.widget_for_path[tuple(path.split("."))]
+        return self.serialize_value(widget)
+
     def associate(self, path, widget):
         path = path.split(".")
         self.items[widget] = path
+        self.widget_for_path[tuple(path)] = widget
 

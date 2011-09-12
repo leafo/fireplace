@@ -38,13 +38,18 @@ class AsyncProxy(object):
         if not callable(func):
             return func
 
-        def async_call(callback, *args):
+        def async_call(callback, *args, **kwargs):
             prox = self
             class CallbackThread(threading.Thread):
                 def run(self):
-                    response = func(*args)
-                    if callable(callback):
-                        prox._queue_result(callback, response)
+                    try:
+                        response = func(*args)
+                        if callable(callback):
+                            prox._queue_result(callback, response)
+                    except Exception, e:
+                        if "fail" not in kwargs: raise
+                        prox._queue_result(kwargs["fail"], e)
+
             CallbackThread().start()
 
         return async_call
@@ -52,8 +57,8 @@ class AsyncProxy(object):
 
 # wraps the root campfire object
 class Network(AsyncProxy):
-    def __init__(self):
-        self.campfire = Campfire()
+    def __init__(self, *args, **kwargs):
+        self.campfire = Campfire(*args, **kwargs)
         super(Network, self).__init__(self.campfire)
 
 class StreamingRoom(threading.Thread):
@@ -106,20 +111,15 @@ class TabWindow(gtk.Window):
     def close_chat(self):
         pass
 
-    def on_account(self, me):
-        self.me = me["user"]
-        self.ready = True
-
-    def __init__(self):
+    def __init__(self, network, me):
         super(TabWindow, self).__init__()
-        self.network = Network()
-        self.network.api(self.on_account, "users/me")
-        self.ready = False
+        self.me = me
+        self.network = network
 
         self.current_chats = {}
 
-        self.set_title("Hi")
-        self.set_size_request(640, 480)
+        self.set_title("Chat")
+        self.set_size_request(640, 200)
         self.set_border_width(6)
 
         self.connect("destroy", self.on_destroy)
@@ -357,9 +357,6 @@ class ChatDialog(gtk.VBox):
         self.stream.start()
 
 if __name__ == "__main__":
-    # gtk.main()
-    # First().run()
-    # TabWindow()
     import login
     login.LoginDialog()
     gtk.main()
