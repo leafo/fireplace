@@ -32,6 +32,7 @@ class ChatHistory(gtk.ScrolledWindow):
 
         def write_recent(recent):
             for msg in recent["messages"]:
+                msg["_show_me"] = True
                 self.on_message(msg)
 
         self.network.api(write_recent, "room/%d/recent" % self.chat.room.id)
@@ -88,7 +89,8 @@ class ChatHistory(gtk.ScrolledWindow):
         body = msg["body"]
 
         is_me = msg["user_id"] == self.chat.controller.me["id"]
-        self.text.write_line(user_name, body, is_me)
+        if not is_me or msg.get("_show_me"):
+            self.text.write_line(user_name, body, is_me)
 
     def on_LeaveMessage(self, msg):
         user_name = self.chat.user_id_to_name[msg["user_id"]]
@@ -172,10 +174,10 @@ class ChatDialog(gtk.VBox):
         self.set_border_width(6)
 
         self.send_button = gtk.Button("Send")
-        self.send_button.connect("clicked", self.on_click_send)
+        self.send_button.connect("clicked", self.on_activate)
 
         self.entry = gtk.Entry()
-        self.entry.connect("activate", self.on_send)
+        self.entry.connect("activate", self.on_activate)
 
         self.entry.set_sensitive(False)
         self.send_button.set_sensitive(False)
@@ -220,15 +222,13 @@ class ChatDialog(gtk.VBox):
         self.refreshing = False
         self.history.on_chat_dialog_ready()
 
-    def on_click_send(self, button):
-        self.on_send(self.entry)
-
-    def on_send(self, entry):
-        text = entry.get_text()
+    def on_activate(self, widget):
+        text = self.entry.get_text()
         if not text: return
         print "sending:", text
         self.room.speak(None, text)
-        entry.set_text("")
+        self.history.text.write_line(self.controller.me["name"], text, True)
+        self.entry.set_text("")
 
     def on_join(self, room):
         self.room = room

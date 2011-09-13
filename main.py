@@ -86,7 +86,7 @@ class TabWindow(gtk.Window, HasController):
         self.current_chats = {}
 
         self.set_title("Chat")
-        self.set_size_request(640, 200)
+        self.set_default_size(640, 400)
         self.set_border_width(6)
 
         self.connect("destroy", self.on_destroy)
