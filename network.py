@@ -55,10 +55,16 @@ class StreamingRoom(threading.Thread):
         self.daemon = True
         self.callback = callback
         self.room = room
+        self.finished = False
+
+    def queue_finish(self):
+        self.finished = True
 
     def run(self):
         stream = self.room._obj.get_streaming()
         while True:
+            if self.finished: return
             message = stream.get_message()
-            self.callback(message)
+            if message is not None:
+                self.callback(message)
 

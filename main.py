@@ -64,12 +64,20 @@ class TabWindow(gtk.Window, HasController):
             page_id = self.notebook.append_page(chat, hbox)
             self.current_chats[room_id] = (page_id, chat)
 
-            close_button.connect("clicked", self.on_close_chat, room_name)
+            close_button.connect("clicked", self.on_close_chat, room_id)
 
         self.notebook.set_current_page(page_id)
 
-    def on_close_chat(self, btn, room_name):
-        print "close room:", room_name
+    def on_close_chat(self, btn, room_id):
+        remove_id, chat = self.current_chats[room_id]
+        del self.current_chats[room_id]
+        chat.shutdown()
+        self.notebook.remove_page(remove_id)
+
+        for room_id, chat_tuple in self.current_chats.iteritems():
+            page_id, chat = chat_tuple
+            if page_id > remove_id:
+                self.current_chats[room_id] = (page_id - 1, chat)
 
     def __init__(self, controller):
         super(TabWindow, self).__init__()

@@ -141,6 +141,7 @@ class HistoryWidget(gtk.TextView):
         self.scroll()
 
 class ChatDialog(gtk.VBox):
+    stream = None
     refreshing = False
     room = None
 
@@ -198,6 +199,10 @@ class ChatDialog(gtk.VBox):
 
         self.user_id_to_name = {}
 
+    def shutdown(self):
+        if self.stream is not None:
+            self.stream.queue_finish()
+        self.room.leave(None)
 
     def refresh(self):
         if self.refreshing: return

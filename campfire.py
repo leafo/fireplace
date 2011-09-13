@@ -137,7 +137,7 @@ class StreamingRoom(Campfire):
         while True:
             c = self.conn.read(1)
             if c.isspace():
-                continue
+                return None
             else:
                 buff.append(c)
                 while True:
