@@ -10,14 +10,7 @@ from login import LoginDialog
 from room_picker import RoomPicker
 from chat import ChatDialog
 
-class HasController(object):
-    @property
-    def me(self):
-        return self.controller.me
-
-    @property
-    def network(self):
-        return self.controller.network
+from controller import *
 
 # hello
 class ChatController(object):
@@ -27,13 +20,15 @@ class ChatController(object):
         self.network.campfire.key = me["api_auth_token"]
 
         self.login_dialog.hide()
-        TabWindow(self)
+        self.window = TabWindow(self)
+
+    def goto_chat(self, room_id, room_name):
+        self.window.goto_chat(room_id, room_name)
 
     def start(self):
         self.login_dialog = LoginDialog(self)
         gtk.main()
 
-# move controller out of here
 class TabWindow(gtk.Window, HasController):
     def on_destroy(self, widget, data=None):
         gtk.main_quit()
@@ -43,7 +38,7 @@ class TabWindow(gtk.Window, HasController):
             page_id, chat = self.current_chats[room_id]
         else:
             label = gtk.Label(room_name)
-            chat = ChatDialog(self, room_id, label)
+            chat = ChatDialog(self.controller, room_id, label)
 
             # close button for tab
             image = gtk.Image()

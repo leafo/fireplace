@@ -1,15 +1,14 @@
 
 import gtk
+from controller import HasController
 
-class RoomPicker(gtk.VBox):
+class RoomPicker(gtk.VBox, HasController):
     refresh_text = "Refresh"
     refreshing_text = "Refreshing..."
 
     def __init__(self, controller):
         super(RoomPicker, self).__init__(False, 4)
-
         self.controller = controller
-        self.network = controller.network
         self.set_border_width(6)
 
         self.store = gtk.ListStore(int, str, str)

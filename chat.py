@@ -5,11 +5,13 @@ import pango
 from collections import deque
 from network import StreamingRoom
 
-class ChatHistory(gtk.ScrolledWindow):
+from controller import HasController
+
+class ChatHistory(gtk.ScrolledWindow, HasController):
     def __init__(self, chat_dialog):
         super(ChatHistory, self).__init__()
         self.chat = chat_dialog
-        self.network = chat_dialog.network
+        self.controller = chat_dialog.controller
 
         self.text = HistoryWidget()
 
@@ -88,7 +90,7 @@ class ChatHistory(gtk.ScrolledWindow):
         user_name = self.chat.user_id_to_name[msg["user_id"]]
         body = msg["body"]
 
-        is_me = msg["user_id"] == self.chat.controller.me["id"]
+        is_me = msg["user_id"] == self.me["id"]
         if not is_me or msg.get("_show_me"):
             self.text.write_line(user_name, body, is_me)
 
@@ -142,7 +144,7 @@ class HistoryWidget(gtk.TextView):
 
         self.scroll()
 
-class ChatDialog(gtk.VBox):
+class ChatDialog(gtk.VBox, HasController):
     stream = None
     refreshing = False
     room = None
@@ -169,7 +171,6 @@ class ChatDialog(gtk.VBox):
         super(ChatDialog, self).__init__(False, 4)
         self.label = label
         self.controller = controller
-        self.network = controller.network
 
         self.set_border_width(6)
 

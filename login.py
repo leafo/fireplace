@@ -90,8 +90,10 @@ class LoginDialog(gtk.Window):
                 self.user_entry.grab_focus()
             else:
                 self._error(str(err))
-
-        raise err
+        elif isinstance(err, urllib2.URLError):
+            self._error("Failed to connect")
+        else:
+            raise err
 
     def on_destroy(self, widget):
         gtk.main_quit()
