@@ -5,17 +5,21 @@ import json
 import re
 
 class Campfire(object):
-    key = "eda1e05163b1bac206c701624480b8adaacc3fe6"
-    url = "https://leafonet.campfirenow.com:443/"
+    @property
+    def auth(self):
+        if self.key is None:
+            raise ValueError("client has no key")
+        return (self.key, 'x')
 
     @classmethod
     def url_for_subdomain(self, domain):
         return "https://%s.campfirenow.com:443/" % domain
 
-    def __init__(self, key=None, url=None):
-        self.rooms = None
-        if key is not None: self.key = key
-        if url is not None: self.url = url
+    def __init__(self, url, key=None):
+        self.room_for_name = None
+        self.room_for_id = None
+        self.url = url
+        self.key = key if key is not None else None
 
     def login(self, username, password):
         return self.api("users/me", auth=(username, password))
@@ -24,7 +28,7 @@ class Campfire(object):
         print "Requesting:", url, "data:", data
         req = urllib2.Request(url, data=data)
 
-        if auth is None: auth = (self.key, 'x')
+        if auth is None: auth = self.auth
 
         auth = base64.encodestring('%s:%s' % auth)[:-1]
         req.add_header("Authorization", "Basic " + auth)
@@ -44,22 +48,40 @@ class Campfire(object):
     def join(self, room_name):
         room = self.get_room_by_name(room_name)
         if room is None: raise ValueError("unknown room %s" % room_name)
-        self.api("room/%d/join" % room['id'], "")
+        self._join_by_id(room["id"])
         return Room(self, room)
+
+    def join_by_id(self, room_id):
+        room = self.get_room_by_id(room_id)
+        if room is None: raise ValueError("unknown room %s" % room_id)
+        self._join_by_id(room_id)
+        print room
+        return Room(self, room)
+
+    def _join_by_id(self, room_id):
+        self.api("room/%d/join" % room_id, "")
 
     def get_all_rooms(self):
         rooms = self.api("rooms")["rooms"]
-        self.rooms = {}
+        self.room_for_name = {}
+        self.room_for_id = {}
         for room in rooms:
-            self.rooms[room["name"]] = room
+            self.room_for_name[room["name"]] = room
+            self.room_for_id[room["id"]] = room
 
         return rooms
 
     def get_room_by_name(self, name, force=False):
-        if self.rooms is None or force == True:
+        if self.room_for_name is None or force == True:
             self.get_all_rooms()
 
-        return self.rooms[name]
+        return self.room_for_name[name]
+
+    def get_room_by_id(self, id, force=False):
+        if self.room_for_id is None or force == True:
+            self.get_all_rooms()
+
+        return self.room_for_id[id]
 
 class Room(object):
     def __init__(self, campfire, room):
@@ -71,6 +93,14 @@ class Room(object):
     @property
     def id(self):
         return self.room['id']
+
+    @property
+    def name(self):
+        return self.room['name']
+
+    @property
+    def topic(self):
+        return self.room['topic']
 
     def get_users(self):
         if self.detailed is None:
@@ -121,7 +151,7 @@ class StreamingRoom(Campfire):
         return self.room.campfire
 
 if __name__ == "__main__":
-    c = Campfire()
+    c = Campfire(Campfire.url_for_subdomain("leafonet"))
 
     print c.login("leafot@gmail.com", "brokepass")
 

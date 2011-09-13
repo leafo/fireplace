@@ -24,6 +24,7 @@ class ChatController(object):
     def on_login(self, network, me):
         self.me = me
         self.network = network
+        self.network.campfire.key = me["api_auth_token"]
 
         self.login_dialog.hide()
         TabWindow(self)
@@ -37,12 +38,12 @@ class TabWindow(gtk.Window, HasController):
     def on_destroy(self, widget, data=None):
         gtk.main_quit()
 
-    def goto_chat(self, room_name):
-        if room_name in self.current_chats:
-            page_id, chat = self.current_chats[room_name]
+    def goto_chat(self, room_id, room_name):
+        if room_id in self.current_chats:
+            page_id, chat = self.current_chats[room_id]
         else:
             label = gtk.Label(room_name)
-            chat = ChatDialog(self, room_name, label)
+            chat = ChatDialog(self, room_id, label)
 
             # close button for tab
             image = gtk.Image()
@@ -61,12 +62,14 @@ class TabWindow(gtk.Window, HasController):
             hbox.show_all()
 
             page_id = self.notebook.append_page(chat, hbox)
-            self.current_chats[room_name] = (page_id, chat)
+            self.current_chats[room_id] = (page_id, chat)
+
+            close_button.connect("clicked", self.on_close_chat, room_name)
 
         self.notebook.set_current_page(page_id)
 
-    def close_chat(self):
-        pass
+    def on_close_chat(self, btn, room_name):
+        print "close room:", room_name
 
     def __init__(self, controller):
         super(TabWindow, self).__init__()

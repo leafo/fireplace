@@ -7,14 +7,12 @@ class RoomPicker(gtk.VBox):
 
     def __init__(self, controller):
         super(RoomPicker, self).__init__(False, 4)
-        # self.set_title("Room Picker")
-        # self.set_size_request(350, 250)
 
         self.controller = controller
         self.network = controller.network
         self.set_border_width(6)
 
-        self.store = gtk.ListStore(str, str)
+        self.store = gtk.ListStore(int, str, str)
         tree_view = gtk.TreeView(self.store)
         tree_view.connect("row-activated", self.on_activate)
         tree_view.set_rules_hint(True)
@@ -55,22 +53,23 @@ class RoomPicker(gtk.VBox):
     def fill_rooms(self, rooms):
         self.store.clear()
         for room in rooms:
-            self.store.append([room["name"], room["topic"]])
+            self.store.append([room["id"], room["name"], room["topic"]])
 
         self.refresh_button.set_sensitive(True)
         self.refresh_button.set_label(self.refresh_text)
 
     def on_activate(self, widget, row, col):
         # print "activate row:", row, "col:", col
-        room_name = self.store[row][0]
-        self.controller.goto_chat(room_name)
+        room_id = self.store[row][0]
+        room_name = self.store[row][1]
+        self.controller.goto_chat(room_id, room_name)
 
     def create_columns(self, tree_view):
-        col = gtk.TreeViewColumn("Name", gtk.CellRendererText(), text=0)
+        col = gtk.TreeViewColumn("Name", gtk.CellRendererText(), text=1)
         col.set_sort_column_id(0)
         tree_view.append_column(col)
 
-        col = gtk.TreeViewColumn("Topic", gtk.CellRendererText(), text=1)
+        col = gtk.TreeViewColumn("Topic", gtk.CellRendererText(), text=2)
         col.set_sort_column_id(1)
         tree_view.append_column(col)
 

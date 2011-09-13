@@ -31,7 +31,6 @@ class ChatHistory(gtk.ScrolledWindow):
             self.on_message(msg)
 
         def write_recent(recent):
-            from pprint import pprint
             for msg in recent["messages"]:
                 self.on_message(msg)
 
@@ -74,7 +73,7 @@ class ChatHistory(gtk.ScrolledWindow):
 
     def _show_message(self, msg):
         type = msg["type"]
-        print "Showing", type
+        # print "Showing", type
         try:
             func = getattr(self, "on_" + type)
         except AttributeError:
@@ -98,6 +97,13 @@ class ChatHistory(gtk.ScrolledWindow):
     def on_EnterMessage(self, msg):
         user_name = self.chat.user_id_to_name[msg["user_id"]]
         self.text.write_status("%s joined the room" % user_name)
+
+    def on_KickMessage(self, msg):
+        user_name = self.chat.user_id_to_name[msg["user_id"]]
+        self.text.write_status("%s was kicked from the room" % user_name)
+
+    def on_TimestampMessage(self, msg):
+        pass
 
 # know how to render text
 class HistoryWidget(gtk.TextView):
@@ -126,8 +132,6 @@ class HistoryWidget(gtk.TextView):
 
     # write a chat line
     def write_line(self, username, content, is_me=False):
-        print username, ":", content
-
         buffer = self.get_buffer()
         buffer.insert_with_tags_by_name(buffer.get_end_iter(),
                 "%s: " % username, "my_message" if is_me else "their_message")
@@ -158,9 +162,9 @@ class ChatDialog(gtk.VBox):
         sw.add(user_list)
         return sw
 
-
-    def __init__(self, controller, room_name, label):
+    def __init__(self, controller, room_id, label):
         super(ChatDialog, self).__init__(False, 4)
+        self.label = label
         self.controller = controller
         self.network = controller.network
 
@@ -190,7 +194,7 @@ class ChatDialog(gtk.VBox):
         self.pack_start(hbox, False)
         self.show_all()
 
-        self.network.join(self.on_join, room_name)
+        self.network.join_by_id(self.on_join, room_id)
 
         self.user_id_to_name = {}
 
@@ -223,6 +227,8 @@ class ChatDialog(gtk.VBox):
 
     def on_join(self, room):
         self.room = room
+        self.label.set_text(room.name)
+
         self.entry.set_sensitive(True)
         self.send_button.set_sensitive(True)
 
