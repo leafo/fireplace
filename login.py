@@ -108,7 +108,7 @@ class LoginDialog(gtk.Window):
         self.pass_entry.set_visibility(False)
 
         self.connect("delete_event", self.controller.on_delete)
-        self.connect("destroy", self.controller.on_destroy)
+        self.connect("destroy", self.controller.exit)
 
         vbox = gtk.VBox(False, 2)
         vbox.pack_start(self.entry_row("Domain", self.domain_entry))

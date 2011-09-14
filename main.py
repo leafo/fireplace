@@ -16,6 +16,13 @@ from config import *
 import pynotify
 pynotify.init("Fireplace")
 
+def exit_menu_item(action, accel_group):
+    exit_item = gtk.ImageMenuItem(gtk.STOCK_QUIT, accel_group)
+    key, mod = gtk.accelerator_parse("<Control>Q")
+    exit_item.add_accelerator("activate", accel_group, key, mod, gtk.ACCEL_VISIBLE)
+    exit_item.connect("activate", action)
+    return exit_item
+
 # hello
 class ChatController(object):
     status_icon = None
@@ -33,10 +40,7 @@ class ChatController(object):
             agr = gtk.AccelGroup()
 
             menu = self.context_menu = gtk.Menu()
-            exit_item = gtk.ImageMenuItem(gtk.STOCK_QUIT, agr)
-            key, mod = gtk.accelerator_parse("<Control>Q")
-            exit_item.add_accelerator("activate", agr, key, mod, gtk.ACCEL_VISIBLE)
-            exit_item.connect("activate", self.on_destroy)
+            exit_item = exit_menu_item(self.exit, agr)
 
             menu.append(exit_item)
             menu.show_all()
@@ -57,7 +61,7 @@ class ChatController(object):
             window.hide()
             return True
 
-    def on_destroy(self, window):
+    def exit(self, *args):
         gtk.main_quit()
 
     def on_login(self, network, me):
@@ -122,6 +126,31 @@ class TabWindow(gtk.Window, HasController):
             if page_id > remove_id:
                 self.current_chats[room_id] = (page_id - 1, chat)
 
+    def build_menu(self):
+        menu_bar = gtk.MenuBar()
+
+        agr = gtk.AccelGroup()
+
+        file_menu_item = gtk.MenuItem("_File")
+        file_menu = gtk.Menu()
+        exit_item = exit_menu_item(self.controller.exit, agr)
+        file_menu.append(exit_item)
+
+        file_menu_item.set_submenu(file_menu)
+
+        options_menu_item = gtk.MenuItem("_Options")
+        options_menu = gtk.Menu()
+
+        notify_item = gtk.CheckMenuItem("Show Notifications")
+        self.config.bind_to_widget("show_notifications", notify_item)
+
+        options_menu.append(notify_item)
+        options_menu_item.set_submenu(options_menu)
+
+        menu_bar.append(file_menu_item)
+        menu_bar.append(options_menu_item)
+        return menu_bar
+
     def __init__(self, controller):
         super(TabWindow, self).__init__()
         self.controller = controller
@@ -130,16 +159,20 @@ class TabWindow(gtk.Window, HasController):
 
         self.set_title("Chat")
         self.set_default_size(640, 400)
-        self.set_border_width(6)
+        # self.set_border_width(6) # where to put this?
 
         self.connect("delete_event", self.controller.on_delete)
-        self.connect("destroy", self.controller.on_destroy)
+        self.connect("destroy", self.controller.exit)
 
         self.rooms = RoomPicker(self)
         self.notebook = gtk.Notebook()
         self.notebook.append_page(self.rooms, gtk.Label("Room List"))
 
-        self.add(self.notebook)
+        vbox = gtk.VBox(False, 4)
+        vbox.pack_start(self.build_menu(), False, False)
+        vbox.pack_start(self.notebook, True, True)
+
+        self.add(vbox)
         self.show_all()
 
 if __name__ == "__main__":

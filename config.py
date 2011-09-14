@@ -14,6 +14,7 @@ class Config(object):
     settings = None
     defaults = {
         "status_icon": True,
+        "show_notifications": True,
         "server": { }
     }
 
@@ -79,6 +80,13 @@ class Config(object):
 
         return cls(settings)
 
+    def bind_to_widget(self, path, widget, validate=None):
+        sync = ConfigSynchronizer(self)
+        sync.associate(path, widget)
+        sync.fill_widgets()
+        sync.sync_on_change(widget)
+
+
 class ConfigSynchronizer(object):
     def __init__(self, cfg):
         self.items = {} # path for widgets
@@ -92,6 +100,9 @@ class ConfigSynchronizer(object):
         if isinstance(widget, gtk.ToggleButton):
             return widget.get_active()
 
+        if isinstance(widget, gtk.CheckMenuItem):
+            return widget.get_active()
+
         raise TypeError("Unknown widget", widget)
 
     def update_widget_value(self, widget, value):
@@ -101,6 +112,18 @@ class ConfigSynchronizer(object):
 
         if isinstance(widget, gtk.ToggleButton):
             return widget.set_active(1 if value else 0)
+
+        if isinstance(widget, gtk.CheckMenuItem):
+            return widget.set_active(bool(value))
+
+        raise TypeError("Unknown widget", widget)
+
+    def sync_on_change(self, widget):
+        def callback(*args): self.save_widget_values()
+
+        if isinstance(widget, gtk.CheckMenuItem):
+            widget.connect("toggled", callback)
+            return
 
         raise TypeError("Unknown widget", widget)
 
@@ -127,7 +150,7 @@ class ConfigSynchronizer(object):
         widget = self.widget_for_path[tuple(path.split("."))]
         return self.serialize_value(widget)
 
-    def associate(self, path, widget):
+    def associate(self, path, widget, pre_save=None):
         path = path.split(".")
         self.items[widget] = path
         self.widget_for_path[tuple(path)] = widget
