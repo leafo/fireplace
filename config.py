@@ -13,6 +13,7 @@ class Config(object):
 
     settings = None
     defaults = {
+        "window_title": "Fireplace",
         "status_icon": True,
         "show_notifications": True,
         "server": { }

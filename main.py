@@ -110,6 +110,7 @@ class TabWindow(gtk.Window, HasController):
 
             page_id = self.notebook.append_page(chat, hbox)
             self.current_chats[room_id] = (page_id, chat)
+            self.label_for_page.append(label)
 
             close_button.connect("clicked", self.on_close_chat, room_id)
 
@@ -125,6 +126,12 @@ class TabWindow(gtk.Window, HasController):
             page_id, chat = chat_tuple
             if page_id > remove_id:
                 self.current_chats[room_id] = (page_id - 1, chat)
+
+        del self.label_for_page[remove_id]
+
+    def on_page_change(self, notebook, page, page_num):
+        label = self.label_for_page[page_num]
+        self.set_title("%s - %s" % (self.config.window_title, label.get_text()))
 
     def build_menu(self):
         menu_bar = gtk.MenuBar()
@@ -156,6 +163,7 @@ class TabWindow(gtk.Window, HasController):
         self.controller = controller
 
         self.current_chats = {}
+        self.label_for_page = []
 
         self.set_title("Chat")
         self.set_default_size(640, 400)
@@ -166,7 +174,11 @@ class TabWindow(gtk.Window, HasController):
 
         self.rooms = RoomPicker(self)
         self.notebook = gtk.Notebook()
-        self.notebook.append_page(self.rooms, gtk.Label("Room List"))
+        self.notebook.connect("switch-page", self.on_page_change)
+
+        tab_label = gtk.Label("Room List")
+        self.label_for_page.append(tab_label)
+        self.notebook.append_page(self.rooms, tab_label)
 
         vbox = gtk.VBox(False, 4)
         vbox.pack_start(self.build_menu(), False, False)
