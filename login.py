@@ -1,6 +1,7 @@
 
 import gtk
-from config import *
+from util import *
+from config import ConfigSynchronizer
 
 import urllib2
 
@@ -95,9 +96,6 @@ class LoginDialog(gtk.Window):
         else:
             raise err
 
-    def on_destroy(self, widget):
-        gtk.main_quit()
-
     def __init__(self, controller):
         super(LoginDialog, self).__init__()
         self.controller = controller
@@ -109,7 +107,8 @@ class LoginDialog(gtk.Window):
         self.pass_entry = gtk.Entry()
         self.pass_entry.set_visibility(False)
 
-        self.connect("destroy", self.on_destroy)
+        self.connect("delete_event", self.controller.on_delete)
+        self.connect("destroy", self.controller.on_destroy)
 
         vbox = gtk.VBox(False, 2)
         vbox.pack_start(self.entry_row("Domain", self.domain_entry))
@@ -133,8 +132,7 @@ class LoginDialog(gtk.Window):
         self.add(vbox)
 
         # attempt to load config
-        cfg = Config.load_or_create()
-        self.sync = ConfigSynchronizer(cfg)
+        self.sync = ConfigSynchronizer(controller.config)
 
         self.sync.associate("server.auto_connect", self.auto_check)
         self.sync.associate("server.host", self.domain_entry)

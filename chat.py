@@ -5,7 +5,7 @@ import pango
 from collections import deque
 from network import StreamingRoom
 
-from controller import HasController
+from util import *
 
 class ChatHistory(gtk.ScrolledWindow, HasController):
     def __init__(self, chat_dialog):
@@ -34,6 +34,7 @@ class ChatHistory(gtk.ScrolledWindow, HasController):
 
         def write_recent(recent):
             for msg in recent["messages"]:
+                msg["_is_recent"] = True
                 msg["_show_me"] = True
                 self.on_message(msg)
 
@@ -92,6 +93,8 @@ class ChatHistory(gtk.ScrolledWindow, HasController):
 
         is_me = msg["user_id"] == self.me["id"]
         if not is_me or msg.get("_show_me"):
+            if not msg.get("_is_recent"):
+                self.controller.notify(self.chat.room.name, "<b>%s</b>: %s" % (user_name, html_escape(body)))
             self.text.write_line(user_name, body, is_me)
 
     def on_LeaveMessage(self, msg):

@@ -13,6 +13,7 @@ class Config(object):
 
     settings = None
     defaults = {
+        "status_icon": True,
         "server": { }
     }
 

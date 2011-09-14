@@ -1,6 +1,7 @@
 
 import gtk
-from controller import HasController
+
+from util import *
 
 class RoomPicker(gtk.VBox, HasController):
     refresh_text = "Refresh"
