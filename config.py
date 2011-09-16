@@ -7,7 +7,23 @@ import json
 import os
 from os import path
 
-class Config(object):
+class ConfigBase(object):
+    def wrap_result(self, value, name, using_default):
+        t = type(value)
+        if t == dict:
+            if using_default:
+                value = {}
+                self.set(name, value)
+            return Config(value, self.defaults.get(name))
+        if t == list:
+            if using_default:
+                value = []
+                self.set(name, value)
+            return ConfigArray(value, self.defaults.get(name))
+        else:
+            return value
+
+class Config(ConfigBase):
     version = 1 # for migration
     default_name = ".fireplace"
 
@@ -36,13 +52,7 @@ class Config(object):
         else:
             value = self.settings[name]
 
-        if type(value) == dict:
-            if using_default:
-                value = {}
-                setattr(self, name, value)
-            return Config(value, self.defaults.get(name))
-        else:
-            return value
+        return self.wrap_result(value, name, using_default)
 
     def follow_path(self, path):
         cfg = self
@@ -87,6 +97,23 @@ class Config(object):
         sync.fill_widgets()
         sync.sync_on_change(widget)
 
+class ConfigArray(ConfigBase):
+    def __init__(self, items, defaults=None):
+        self.items = items
+        if defaults: self.defaults = defaults
+
+    def get(self, index):
+        using_default = False
+        if index not in self.items:
+            using_default = True
+            value = self.defaults[index]
+        else:
+            value = self.items[index]
+
+        return Config.wrap_result(value, index, using_default)
+
+    def set(self, index, value):
+        self.items[index] = value
 
 class ConfigSynchronizer(object):
     def __init__(self, cfg):
