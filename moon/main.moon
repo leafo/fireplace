@@ -5,21 +5,66 @@ import Gdk, Gtk, GObject, Soup from lgi
 
 json = require "cjson"
 
-window = Gtk.Window {
-  title: "This is my window"
-  border_width: 8
-  default_width: 320
-  default_height: 200
+make_login = ->
 
-  on_key_press_event: (e) =>
-    if e.string\byte! == 27
-      return Gtk.main_quit!
+  login_btn = Gtk.Button {
+    label: "Login"
+    on_clicked: =>
+      print "Hello world"
+  }
 
-  on_show: (...) =>
-    print "showing:", ...
+  buttons = Gtk.HButtonBox {
+    login_btn
+  }
 
-  on_destroy: Gtk.main_quit
-}
+  domain_entry = Gtk.Entry!
+  username_entry = Gtk.Entry!
+  password_entry = Gtk.Entry visibility: false
+
+  make_row = (label, entry) ->
+    _label = Gtk.Label(:label)
+    with Gtk.HBox false, 8
+      \pack_start _label, false, false, 0
+      \pack_start entry, true, true, 0
+
+  box = with Gtk.VBox false, 8
+    \pack_start make_row("Domain", domain_entry), true, true, 0
+    \pack_start make_row("Username", username_entry), true, true, 0
+    \pack_start make_row("Password", password_entry), true, true, 0
+    \pack_start buttons, true, true, 0
+
+  Gtk.Window {
+    title: "Login"
+    border_width: 8
+    default_width: 320
+    default_height: 200
+
+    on_key_press_event: (e) =>
+      if e.string\byte! == 27
+        return Gtk.main_quit!
+
+    box
+  }
+
+
+
+
+test_window = ->
+  window = Gtk.Window {
+    title: "This is my window"
+    border_width: 8
+    default_width: 320
+    default_height: 200
+
+    on_key_press_event: (e) =>
+      if e.string\byte! == 27
+        return Gtk.main_quit!
+
+    on_show: (...) =>
+      print "showing:", ...
+
+    on_destroy: Gtk.main_quit
+  }
 
 
 store = Gtk.ListStore.new {
@@ -110,22 +155,25 @@ fetch_btn = Gtk.Button {
 
 campfire = Campfire "leafonet"
 
-login_btn = Gtk.Button {
-  label: "Log in"
-  on_clicked: =>
-    campfire\login "leafot@gmail.com", "thepassword", (user) =>
-      campfire\list_rooms!
-}
+-- login_btn = Gtk.Button {
+--   label: "Log in"
+--   on_clicked: =>
+--     campfire\login "leafot@gmail.com", "thepassword", (user) =>
+--       campfire\list_rooms!
+-- }
+-- 
+-- buttons = Gtk.HButtonBox { fetch_btn, login_btn }
+-- 
+-- box = Gtk.VBox false
+-- 
+-- box\pack_start scrolled, true, true, 0
+-- box\pack_start buttons, false, false, 8
+-- 
+-- window\add box
+-- window\show_all!
 
-buttons = Gtk.HButtonBox { fetch_btn, login_btn }
 
-box = Gtk.VBox false
+w = make_login!
+w\show_all!
 
-box\pack_start scrolled, true, true, 0
-box\pack_start buttons, false, false, 8
-
-window\add box
-
-
-window\show_all!
 Gtk.main!
