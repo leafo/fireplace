@@ -22,12 +22,18 @@ make_login = ->
   password_entry = Gtk.Entry visibility: false
 
   make_row = (label, entry) ->
-    _label = Gtk.Label(:label)
+    align = Gtk.Alignment {
+      xalign: 1
+      xscale: 0
+      Gtk.Label(:label)
+    }
+
+    align.width_request = 80
     with Gtk.HBox false, 8
-      \pack_start _label, false, false, 0
+      \pack_start align, false, false, 10
       \pack_start entry, true, true, 0
 
-  box = with Gtk.VBox false, 8
+  box = with Gtk.VBox false, 4
     \pack_start make_row("Domain", domain_entry), true, true, 0
     \pack_start make_row("Username", username_entry), true, true, 0
     \pack_start make_row("Password", password_entry), true, true, 0
